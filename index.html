@@ -3,49 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Colar e Salvar R√°pido</title>
+    <title>Salvar HTML R·pido</title>
     <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
+        :root {
+            --bg: #f8f9fa;
+            --text: #333;
+            --border: #ddd;
+            --primary: #007bff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1a1a1a;
+                --text: #f8f9fa;
+                --border: #444;
+                --primary: #0d6efd;
+            }
+        }
+
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            background-color: var(--bg); 
+            color: var(--text);
+            transition: background 0.3s;
+        }
+
         .container { width: 95%; max-width: 500px; text-align: center; }
-        textarea { width: 100%; height: 180px; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: monospace; resize: none; }
-        button { width: 100%; padding: 25px; font-size: 20px; font-weight: bold; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 10px; transition: background 0.2s; }
+
+        textarea { 
+            width: 100%; 
+            height: 180px; 
+            margin-bottom: 15px; 
+            padding: 10px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-family: monospace; 
+            resize: none; 
+            background: transparent;
+            color: var(--text);
+        }
+
+        button { 
+            width: 100%; 
+            padding: 25px; 
+            font-size: 20px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            background-color: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            transition: transform 0.1s, background 0.2s; 
+        }
+
+        button:active { transform: scale(0.98); opacity: 0.9; }
         button.sucesso { background-color: #28a745; }
-        button:active { background-color: #0056b3; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <textarea id="caixaTexto" placeholder="Cole o c√≥digo HTML aqui..."></textarea>
+    <textarea id="caixaTexto" placeholder="O cÛdigo aparecer· aqui apÛs colar..."></textarea>
     <button id="btnAcao" onclick="processar()">COLAR E SALVAR</button>
 </div>
 
 <script>
+    // Registro do Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(console.error);
+    }
+
     async function processar() {
         const campo = document.getElementById('caixaTexto');
         const btn = document.getElementById('btnAcao');
         
         try {
+            // Tenta ler o clipboard
             const texto = await navigator.clipboard.readText();
-            if (!texto || texto.trim() === "") return;
+            if (!texto || texto.trim() === "") {
+                alert("O clipboard est· vazio!");
+                return;
+            }
 
             campo.value = texto;
 
-            // 1. Tenta encontrar o conte√∫do dentro de <title>...</title>
+            // SanitizaÁ„o aprimorada: busca <title>, limita a 50 chars e remove caracteres proibidos
             const match = texto.match(/<title>(.*?)<\/title>/i);
             let nomeArquivo = "";
 
             if (match && match[1]) {
-                // Remove caracteres inv√°lidos para nomes de arquivos
-                nomeArquivo = match[1].trim().replace(/[\\/:*?"<>|]/g, "");
+                nomeArquivo = match[1].trim()
+                    .replace(/[\\/:*?"<>|]/g, "")
+                    .substring(0, 50); 
             }
 
-            // 2. Se n√£o achou t√≠tulo, usa a data atual como fallback
             if (!nomeArquivo) {
-                nomeArquivo = `doc_${new Date().toLocaleString('pt-BR').replace(/[\/\s:]/g, '-')}`;
+                nomeArquivo = `doc_${new Date().toISOString().replace(/[:.]/g, '-')}`;
             }
 
+            // CriaÁ„o do arquivo para download
             const blob = new Blob([texto], { type: 'text/html' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -55,7 +120,7 @@
             document.body.appendChild(a);
             a.click();
             
-            // Feedback visual
+            // Feedback Visual
             const textoOriginal = btn.innerText;
             btn.innerText = "SALVO!";
             btn.classList.add('sucesso');
@@ -66,13 +131,13 @@
                 campo.value = ""; 
                 btn.innerText = textoOriginal;
                 btn.classList.remove('sucesso');
-            }, 1000);
+            }, 1200);
 
         } catch (err) {
-            console.error("Erro ao processar: ", err);
+            alert("Erro ao acessar clipboard. Cole manualmente no campo acima.");
+            console.error(err);
         }
     }
 </script>
-
 </body>
 </html>
