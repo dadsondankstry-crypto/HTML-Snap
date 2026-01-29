@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colar e Salvar Rápido</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
+        .container { width: 95%; max-width: 500px; text-align: center; }
+        textarea { width: 100%; height: 180px; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: monospace; }
+        button { width: 100%; padding: 25px; font-size: 20px; font-weight: bold; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 10px; }
+        button:active { background-color: #0056b3; }
+	<link rel="icon" type="image/png" href="favicon.png">
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <textarea id="caixaTexto" placeholder="Aguardando colagem..."></textarea>
+    <button onclick="processar()">COLAR E SALVAR</button>
+</div>
+
+<script>
+    async function processar() {
+        const campo = document.getElementById('caixaTexto');
+        
+        try {
+            const texto = await navigator.clipboard.readText();
+            
+            // Se estiver vazio, sai da função sem avisos
+            if (!texto || texto.trim() === "") return;
+
+            campo.value = texto;
+
+            const blob = new Blob([texto], { type: 'text/html' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            a.href = url;
+            a.download = `doc_${Date.now()}.html`; 
+            document.body.appendChild(a);
+            a.click();
+            
+            // Limpeza rápida após o download
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                campo.value = ""; 
+            }, 100);
+
+        } catch (err) {
+            // Silencioso em caso de erro de permissão
+            console.log("Erro silencioso: ", err);
+        }
+    }
+</script>
+
+</body>
+</html>
