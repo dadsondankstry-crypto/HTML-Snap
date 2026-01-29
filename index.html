@@ -4,53 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Colar e Salvar Rápido</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
         .container { width: 95%; max-width: 500px; text-align: center; }
-        textarea { width: 100%; height: 180px; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: monospace; }
-        button { width: 100%; padding: 25px; font-size: 20px; font-weight: bold; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 10px; }
+        textarea { width: 100%; height: 180px; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: monospace; resize: none; }
+        button { width: 100%; padding: 25px; font-size: 20px; font-weight: bold; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 10px; transition: background 0.2s; }
+        button.sucesso { background-color: #28a745; }
         button:active { background-color: #0056b3; }
-	<link rel="icon" type="image/png" href="favicon.png">
     </style>
 </head>
 <body>
 
 <div class="container">
-    <textarea id="caixaTexto" placeholder="Aguardando colagem..."></textarea>
-    <button onclick="processar()">COLAR E SALVAR</button>
+    <textarea id="caixaTexto" placeholder="Cole o código HTML aqui..."></textarea>
+    <button id="btnAcao" onclick="processar()">COLAR E SALVAR</button>
 </div>
 
 <script>
     async function processar() {
         const campo = document.getElementById('caixaTexto');
+        const btn = document.getElementById('btnAcao');
         
         try {
             const texto = await navigator.clipboard.readText();
-            
-            // Se estiver vazio, sai da função sem avisos
             if (!texto || texto.trim() === "") return;
 
             campo.value = texto;
+
+            // 1. Tenta encontrar o conteúdo dentro de <title>...</title>
+            const match = texto.match(/<title>(.*?)<\/title>/i);
+            let nomeArquivo = "";
+
+            if (match && match[1]) {
+                // Remove caracteres inválidos para nomes de arquivos
+                nomeArquivo = match[1].trim().replace(/[\\/:*?"<>|]/g, "");
+            }
+
+            // 2. Se não achou título, usa a data atual como fallback
+            if (!nomeArquivo) {
+                nomeArquivo = `doc_${new Date().toLocaleString('pt-BR').replace(/[\/\s:]/g, '-')}`;
+            }
 
             const blob = new Blob([texto], { type: 'text/html' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             
             a.href = url;
-            a.download = `doc_${Date.now()}.html`; 
+            a.download = `${nomeArquivo}.html`; 
             document.body.appendChild(a);
             a.click();
             
-            // Limpeza rápida após o download
+            // Feedback visual
+            const textoOriginal = btn.innerText;
+            btn.innerText = "SALVO!";
+            btn.classList.add('sucesso');
+
             setTimeout(() => {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
                 campo.value = ""; 
-            }, 100);
+                btn.innerText = textoOriginal;
+                btn.classList.remove('sucesso');
+            }, 1000);
 
         } catch (err) {
-            // Silencioso em caso de erro de permissão
-            console.log("Erro silencioso: ", err);
+            console.error("Erro ao processar: ", err);
         }
     }
 </script>
